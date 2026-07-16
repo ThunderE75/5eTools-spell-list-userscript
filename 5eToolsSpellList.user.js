@@ -3,7 +3,7 @@
 // @namespace           https://github.com/ThunderE75
 // @author              ThunderE75
 // @date                2026-04-22
-// @version             1.3
+// @version             1.4
 // @description         Makes the spells page of 5e.tools clean, and only show pinned list, with customizable UI.
 // @match               *://5e.tools/spells.html*
 // @grant               GM_getValue
@@ -55,6 +55,8 @@
     };
 
     let leftContainer = null;
+    let wrapper;
+    let leftWidth = Number(GM_getValue("leftWidth", 35));
 
     const style = document.createElement("style");
     style.textContent = `
@@ -77,10 +79,14 @@
         .sublist--resizable {
             max-height: unset !important;
         }
+ 
+        .ve-ui-resize__ele-resize {
+            display: none !important;
+        }
     `;
     document.head.appendChild(style);
 
-    function buildLayout(extra, sublist, content, header, nav) {
+    function buildLayout(extra, sublist, content, header, nav, rollbox, rollboxButton) {
         document.body.innerHTML = "";
 
         const top = document.createElement("div");
@@ -90,35 +96,51 @@
         if (CONFIG.showHeader && header) top.appendChild(header);
         if (CONFIG.showNav && nav) top.appendChild(nav);
 
-        const wrapper = document.createElement("div");
+        wrapper = document.createElement("div");
         wrapper.style.display = "flex";
         wrapper.style.width = "100vw";
         wrapper.style.flex = "1 1 auto";
         wrapper.style.minHeight = "0";
 
         leftContainer = document.createElement("div");
-        leftContainer.style.flex = "0 0 35%";
+        leftContainer.style.flex = "0 0 auto";
+        leftContainer.style.width = `${leftWidth}%`;
+        leftContainer.style.minWidth = "250px";
+        leftContainer.style.maxWidth = "80%";
         leftContainer.style.display = "flex";
         leftContainer.style.flexDirection = "column";
         leftContainer.style.height = "100%";
         leftContainer.style.minHeight = "0";
+        leftContainer.style.paddingLeft = "0.5rem";
+        leftContainer.style.boxSizing = "border-box";
 
         if (CONFIG.showExtra && extra) {
             extra.style.flex = "0 0 auto";
             leftContainer.appendChild(extra);
         }
 
-        sublist.style.flex = "1 1 0";
+        sublist.style.flex = "1 1 auto";
         sublist.style.minHeight = "0";
         sublist.style.overflowY = "auto";
         leftContainer.appendChild(sublist);
 
+        if (rollbox) {
+            rollbox.style.flex = "0 0 auto";
+            leftContainer.appendChild(rollbox);
+        }
+
+        if (rollboxButton) {
+            rollboxButton.style.flex = "0 0 auto";
+            leftContainer.appendChild(rollboxButton);
+        }
+
         const right = document.createElement("div");
-        right.style.flex = "0 0 65%";
+        right.style.flex = "1 1 auto";
+        right.style.minWidth = "0";
         right.style.height = "100%";
         right.style.minHeight = "0";
         right.style.overflowY = "auto";
-        right.style.padding = "20px";
+        right.style.padding = "0.5rem";
         right.appendChild(content);
 
         wrapper.appendChild(leftContainer);
@@ -153,16 +175,80 @@
         const extra = document.querySelector("#contentwrapper > div.ve-pt-2.ve-flex-col.no-print");
         const header = document.querySelector("body > div.viewport-wrapper > header");
         const nav = document.getElementById("navigation");
+        const rollbox = document.querySelector(".rollbox");
+        const rollboxButton = document.querySelector(".rollbox-min");
 
         if (!sublist || !content) return;
 
-        buildLayout(extra, sublist, content, header, nav);
+        buildLayout(extra, sublist, content, header, nav, rollbox, rollboxButton);
+
+        // Create our own resize handle
+        const resizeHandle = document.createElement("div");
+        resizeHandle.textContent = "⋮";
+
+        resizeHandle.style.flex = "0 0 10px";
+        resizeHandle.style.width = "12px";
+        resizeHandle.style.margin = "0.5rem 0 0.5rem 0.5rem";
+        resizeHandle.style.cursor = "col-resize";
+        resizeHandle.style.background = "rgba(255,255,255,.08)";
+        resizeHandle.style.display = "flex";
+        resizeHandle.style.alignItems = "center";
+        resizeHandle.style.justifyContent = "center";
+        resizeHandle.style.userSelect = "none";
+        resizeHandle.style.color = "#888";
+        resizeHandle.style.fontSize = "14px";
+        resizeHandle.style.fontWeight = "bold";
+
+        const right = wrapper.children[1];
+        wrapper.insertBefore(resizeHandle, right);
+        let dragging = false;
+
+        resizeHandle.style.touchAction = "none";
+
+        resizeHandle.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+
+            dragging = true;
+            resizeHandle.setPointerCapture(e.pointerId);
+
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "col-resize";
+        });
+
+        resizeHandle.addEventListener("pointermove", (e) => {
+            if (!dragging) return;
+
+            const rect = wrapper.getBoundingClientRect();
+
+            leftWidth = ((e.clientX - rect.left) / rect.width) * 100;
+            leftWidth = Math.max(20, Math.min(70, leftWidth));
+
+            leftContainer.style.width = `${leftWidth}%`;
+        });
+
+        resizeHandle.addEventListener("pointerup", (e) => {
+            dragging = false;
+
+            resizeHandle.releasePointerCapture(e.pointerId);
+
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+
+            GM_setValue("leftWidth", leftWidth);
+        });
+
+        resizeHandle.addEventListener("pointercancel", () => {
+            dragging = false;
+        });
 
         const observer = new MutationObserver(() => {
             moveExtraIfNeeded();
         });
 
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
     }
 
     const interval = setInterval(() => {

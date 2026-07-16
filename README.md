@@ -3,7 +3,7 @@
     <img src=".github/images/5etools.webp"
          width="45" height="50" align="right"/>
   </a>
-  <h1>5eTools Spell List Userscript</h1>
+  <h1>5eTools Spell List Userscript (v1.4)</h1>
 </div>
 
 Fixes the awkward layout of the spell view on [5etools](https://5e.tools/) by creating a clean, split-screen interface.
@@ -20,12 +20,7 @@ Fixes the awkward layout of the spell view on [5etools](https://5e.tools/) by cr
 - Optional toggles via userscript settings:
     - Show/Hide Header
     - Show/Hide Navigation
-    - Show/Hide Extra panel
-
-> [!IMPORTANT]
-> Create your spell list BEFORE enabling the script because Once the script is active:
-> - The original UI is replaced
-> - You won’t have access to the main spell browser anymore
+    - Show/Hide Pinned List Selector Panel
 
 ## Installation
 
